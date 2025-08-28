@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Gene Organelle Visualizer - Mobile</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            color: #333;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+        }
+
+        .mobile-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: #343a40;
+            color: white;
+            padding: 12px 16px;
+            text-align: center;
+            position: relative;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            font-size: 16px;
+            font-weight: 600;
+            flex: 1;
+            margin: 0 8px;
+        }
+
+        .controls-toggle {
+            background: #007bff;
+            border: none;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .controls-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-bottom: 2px solid #dee2e6;
+            z-index: 200;
+            transform: translateY(-100%);
+            transition: transform 0.3s ease;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+
+        .controls-panel.open {
+            transform: translateY(60px);
+        }
+
+        .controls-content {
+            padding: 20px 16px;
+        }
+
+        .control-section {
+            margin-bottom: 24px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .control-section h3 {
+            font-size: 16px;
+            color: #495057;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .organelle-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .organelle-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            touch-action: manipulation;
+        }
+
+        .organelle-item.active {
+            border-color: #007bff;
+            background: #f0f8ff;
+        }
+
+        .organelle-checkbox {
+            margin-right: 12px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .organelle-name {
+            flex: 1;
+            font-weight: 500;
+            font-size: 15px;
+        }
+
+        .organelle-count {
+            background: #007bff;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-right: 8px;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .color-indicator {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 1px #ccc;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .display-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            touch-action: manipulation;
+        }
+
+        .checkbox-item input {
+            margin-right: 8px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .checkbox-item label {
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .slider-group {
+            margin-bottom: 16px;
+        }
+
+        .slider-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            color: #495057;
+        }
+
+        .slider {
+            width: 100%;
+            height: 40px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #ddd;
+            border-radius: 20px;
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            touch-action: pan-x pan-y;
+            background: white;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            touch-action: none;
+        }
+
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 50;
+        }
+
+        .zoom-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .zoom-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        .gene-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 100px;
+            background: rgba(231, 243, 255, 0.95);
+            border: 2px solid #b3d9ff;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 13px;
+            line-height: 1.4;
+            max-height: 120px;
+            overflow-y: auto;
+            z-index: 50;
+            display: none;
+        }
+
+        .gene-info.show {
+            display: block;
+        }
+
+        .close-controls {
+            position: absolute;
+            top: 10px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #666;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        /* Loading state */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Touch feedback */
+        .organelle-item:active,
+        .checkbox-item:active,
+        .zoom-btn:active {
+            transform: scale(0.95);
+            transition: transform 0.1s;
+        }
+
+        /* Responsive adjustments */
+        @media (max-height: 600px) {
+            .controls-panel {
+                max-height: 40vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="header">
+            <h1>🧬 Gene Organelle Visualizer</h1>
+            <button class="controls-toggle" onclick="toggleControls()">Controls</button>
+        </div>
+
+        <div class="controls-panel" id="controlsPanel">
+            <button class="close-controls" onclick="toggleControls()">&times;</button>
+            <div class="controls-content">
+                <div class="control-section">
+                    <h3>👁️ Display Options</h3>
+                    <div class="display-controls">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="showGenes" checked>
+                            <label for="showGenes">Gene Labels</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="showOrganelles" checked>
+                            <label for="showOrganelles">Organelle Labels</label>
+                        </div>
+                    </div>
+
+                    <div class="slider-group">
+                        <label>Gene Font Size: <span id="geneFontValue">8</span>px</label>
+                        <input type="range" class="slider" id="geneFontSlider" min="6" max="16" value="8">
+                    </div>
+
+                    <div class="slider-group">
+                        <label>Label Font Size: <span id="labelFontValue">10</span>px</label>
+                        <input type="range" class="slider" id="labelFontSlider" min="8" max="20" value="10">
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>🧬 Organelle Regions</h3>
+                    <div class="organelle-list" id="organelleList">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
+            <div class="zoom-info" id="zoomInfo">Zoom: 100%</div>
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoomIn()">+</button>
+                <button class="zoom-btn" onclick="zoomOut()">−</button>
+                <button class="zoom-btn" onclick="zoomToFit()" style="font-size: 16px;">⌂</button>
+            </div>
+            <div class="gene-info" id="geneInfo">
+                Click on a gene to see information
+            </div>
+        </div>
+
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let canvas, ctx;
+        let image = null;
+        let regions = new Map();
+        let geneData = new Map();
+        let genePositions = new Map();
+        
+        // State variables
+        let selectedGene = null;
+        let isPanning = false;
+        let lastTouchPoint = { x: 0, y: 0 };
+        
+        // Transform variables
+        let scale = 1;
+        let offsetX = 0;
+        let offsetY = 0;
+        let minScale = 0.3;
+        let maxScale = 3;
+        
+        // Settings
+        let showGeneLabels = true;
+        let showOrganelleLabels = true;
+        let geneFontSize = 8;
+        let labelFontSize = 10;
+
+        // Default project data
+        const defaultProject = {
+            "regions": {
+                "Nucleus": {
+                    "name": "Nucleus",
+                    "points": [
+                        {"x": 90.04333636180235, "y": 310.3910017649567},
+                        {"x": 105.05938686617354, "y": 259.33643005009463},
+                        {"x": 144.10111817753867, "y": 239.81556439441206},
+                        {"x": 186.14605958977802, "y": 242.8187744952863},
+                        {"x": 229.69260605245447, "y": 283.3621108570885},
+                        {"x": 222.1845808002689, "y": 349.4327330763218},
+                        {"x": 177.1364292871553, "y": 380.96643913550133},
+                        {"x": 120.07543737054473, "y": 373.4584138833157},
+                        {"x": 94.54815151311371, "y": 344.92791792501043},
+                        {"x": 91.54494141223947, "y": 325.4070522693279}
+                    ],
+                    "color": "rgba(15, 41, 235, 0.6)",
+                    "visible": true
+                },
+                "Vacuole": {
+                    "name": "Vacuole",
+                    "points": [
+                        {"x": 433.0099207165706, "y": 95.66147955244855},
+                        {"x": 454.0323914226903, "y": 116.68395025856823},
+                        {"x": 470.5500469774986, "y": 143.7128411664364},
+                        {"x": 449.5275762713789, "y": 160.2304967212447},
+                        {"x": 420.99708031307364, "y": 167.7385219734303},
+                        {"x": 407.4826348591396, "y": 140.70963106556215},
+                        {"x": 407.4826348591396, "y": 121.18876540987958},
+                        {"x": 410.4858449600138, "y": 101.66789975419702},
+                        {"x": 424.0002904139479, "y": 113.68074015769399}
+                    ],
+                    "color": "hsla(1.3268582761129943, 70%, 60%, 0.6)",
+                    "visible": true
+                },
+                "Mitochondrion": {
+                    "name": "Mitochondrion",
+                    "points": [
+                        {"x": 223.90516461670154, "y": 482.13916448862096},
+                        {"x": 242.15383710465267, "y": 461.28353878810543},
+                        {"x": 273.437275655426, "y": 454.33166355460025},
+                        {"x": 304.7207142061993, "y": 454.33166355460025},
+                        {"x": 335.1351683527845, "y": 463.02150759648174},
+                        {"x": 353.3838408407356, "y": 477.79424246768025},
+                        {"x": 360.3357160742408, "y": 496.0429149556314},
+                        {"x": 357.72876286167633, "y": 508.2086966142654},
+                        {"x": 345.5629812030423, "y": 518.6365094645232},
+                        {"x": 332.5282151402201, "y": 521.2434626770877},
+                        {"x": 291.6859481433771, "y": 511.68463423101804},
+                        {"x": 269.9613380386734, "y": 514.2915874435824},
+                        {"x": 261.27149399679195, "y": 515.1605718477706},
+                        {"x": 246.4987591255934, "y": 518.6365094645232},
+                        {"x": 229.9880554460186, "y": 516.8985406561469},
+                        {"x": 221.2982114041371, "y": 497.7808837640076},
+                        {"x": 221.2982114041371, "y": 497.7808837640076}
+                    ],
+                    "color": "hsla(108.61795235082242, 70%, 60%, 0.6)",
+                    "visible": true
+                },
+                "Ribosome": {
+                    "name": "Ribosome",
+                    "points": [
+                        {"x": 564.5470510584556, "y": 164.09087255575884},
+                        {"x": 568.8919730793964, "y": 146.71118447199586},
+                        {"x": 583.6647079505949, "y": 138.89032483430253},
+                        {"x": 596.6994740134171, "y": 134.5454028133618},
+                        {"x": 604.5203336511104, "y": 124.98657436729216},
+                        {"x": 617.5550997139327, "y": 117.16571472959883},
+                        {"x": 633.1968189893194, "y": 113.68977711284624},
+                        {"x": 648.838538264706, "y": 115.42774592122254},
+                        {"x": 661.8733043275282, "y": 123.24860555891587},
+                        {"x": 666.2182263484689, "y": 130.20048079242105},
+                        {"x": 666.2182263484689, "y": 138.02134043011438},
+                        {"x": 673.1701015819741, "y": 145.8422000678077},
+                        {"x": 675.7770547945386, "y": 157.13899732225366},
+                        {"x": 674.0390859861623, "y": 168.43579457669958},
+                        {"x": 668.8251795610333, "y": 176.2566542143929},
+                        {"x": 674.9080703903504, "y": 189.29142027721514},
+                        {"x": 676.6460391987267, "y": 208.4090771693544},
+                        {"x": 670.5631483694096, "y": 214.4919679986714},
+                        {"x": 660.1353355191519, "y": 219.7058744238003},
+                        {"x": 645.3626006479534, "y": 216.22993680704772},
+                        {"x": 633.1968189893194, "y": 223.1818120405529},
+                        {"x": 617.5550997139327, "y": 224.9197808489292},
+                        {"x": 606.2583024594867, "y": 226.6577496573055},
+                        {"x": 593.2235363966645, "y": 226.6577496573055},
+                        {"x": 582.7957235464067, "y": 222.31282763636474},
+                        {"x": 568.8919730793964, "y": 210.14704597773067},
+                        {"x": 564.5470510584556, "y": 184.9464982562744},
+                        {"x": 570.6299418877726, "y": 169.30477898088773}
+                    ],
+                    "color": "hsla(266.42128265253086, 70%, 60%, 0.6)",
+                    "visible": true
+                },
+                "Rough ER": {
+                    "name": "Rough ER",
+                    "points": [
+                        {"x": 369.89454452031043, "y": 271.84493867508917},
+                        {"x": 373.37048213706305, "y": 282.27275152534696},
+                        {"x": 381.1913417747564, "y": 289.22462675885214},
+                        {"x": 381.1913417747564, "y": 297.04548639654547},
+                        {"x": 386.40524819988525, "y": 309.2112680551796},
+                        {"x": 389.8811858166378, "y": 323.9840029263781},
+                        {"x": 395.9640766459549, "y": 341.36369101014105},
+                        {"x": 395.9640766459549, "y": 355.2674414771514},
+                        {"x": 394.2261078375786, "y": 370.0401763483499},
+                        {"x": 386.40524819988525, "y": 382.205958006984},
+                        {"x": 373.37048213706305, "y": 396.1097084739944},
+                        {"x": 377.71540415800376, "y": 405.668536920064},
+                        {"x": 405.52290509202453, "y": 406.53752132425217},
+                        {"x": 418.55767115484673, "y": 383.94392681536027},
+                        {"x": 427.2475151967282, "y": 368.3022075399736},
+                        {"x": 442.8892344721149, "y": 364.82626992322105},
+                        {"x": 435.9373592386097, "y": 342.2326754143292},
+                        {"x": 418.55767115484673, "y": 330.93587815988326},
+                        {"x": 413.34376472971786, "y": 307.47329924680326},
+                        {"x": 424.64056198416375, "y": 304.8663460342388},
+                        {"x": 424.64056198416375, "y": 297.04548639654547},
+                        {"x": 412.4747803255297, "y": 303.12837722586255},
+                        {"x": 408.9988427087771, "y": 296.1765019923573},
+                        {"x": 411.60579592134155, "y": 285.7486891420996},
+                        {"x": 398.5710298585193, "y": 278.7968139085944},
+                        {"x": 389.0122014124497, "y": 275.3208762918418},
+                        {"x": 389.0122014124497, "y": 275.3208762918418}
+                    ],
+                    "color": "hsla(238.6876170568204, 70%, 60%, 0.6)",
+                    "visible": true
+                },
+                "Smooth ER": {
+                    "name": "Smooth ER",
+                    "points": [
+                        {"x": 465.15201993124845, "y": 381.07439313331514},
+                        {"x": 466.15229457017693, "y": 370.0713721051015},
+                        {"x": 473.1542170426765, "y": 351.06615396545976},
+                        {"x": 473.1542170426765, "y": 340.06313293724617},
+                        {"x": 465.15201993124845, "y": 331.06066118688955},
+                        {"x": 473.1542170426765, "y": 322.0581894365329},
+                        {"x": 482.15668879303314, "y": 311.0551684083193},
+                        {"x": 481.15641415410465, "y": 296.0510488243916},
+                        {"x": 475.15476632053355, "y": 266.04280965653624},
+                        {"x": 469.1531184869625, "y": 242.03621832225193},
+                        {"x": 469.1531184869625, "y": 231.0331972940383},
+                        {"x": 481.15641415410465, "y": 231.0331972940383},
+                        {"x": 524.1682236280307, "y": 239.0353944054664},
+                        {"x": 538.1720685730298, "y": 247.0375915168945},
+                        {"x": 549.1750896012435, "y": 275.04528140689285},
+                        {"x": 520.1671250723166, "y": 311.0551684083193},
+                        {"x": 522.1676743501737, "y": 325.05901335331845},
+                        {"x": 477.1553155983906, "y": 376.0730199386726},
+                        {"x": 477.1553155983906, "y": 372.0719213829585}
+                    ],
+                    "color": "hsla(156.5622102467031, 70%, 60%, 0.6)",
+                    "visible": true
+                },
+                "Golgi": {
+                    "name": "Golgi",
+                    "points": [
+                        {"x": 250.651979612491, "y": 197.51894613458316},
+                        {"x": 245.66977020071374, "y": 210.6538618565414},
+                        {"x": 265.5986078478228, "y": 224.6946338351864},
+                        {"x": 256.99297340929843, "y": 234.20612453039757},
+                        {"x": 254.7283327675815, "y": 245.07639961063887},
+                        {"x": 260.16347030770214, "y": 254.13496217750662},
+                        {"x": 262.88103907776247, "y": 293.5397093433814},
+                        {"x": 261.5222546927323, "y": 325.2446783274185},
+                        {"x": 270.58081725960005, "y": 351.9674378996784},
+                        {"x": 276.9218110564075, "y": 368.2728505200403},
+                        {"x": 310.8914206821616, "y": 341.0971628194371},
+                        {"x": 319.49705512068596, "y": 324.7917501990751},
+                        {"x": 318.1382707356558, "y": 282.21650613479665},
+                        {"x": 300.0211456019203, "y": 240.0941901988616},
+                        {"x": 270.58081725960005, "y": 219.71242442340915},
+                        {"x": 269.2220328745699, "y": 202.9540836747038},
+                        {"x": 263.78689533444924, "y": 194.34844923617945},
+                        {"x": 263.78689533444924, "y": 194.34844923617945}
+                    ],
+                    "color": "hsla(324.9520804749689, 70%, 60%, 0.6)",
+                    "visible": true
+                },
+                "Peroxisome": {
+                    "name": "Peroxisome",
+                    "points": [
+                        {"x": 476.4210108788569, "y": 488.8430800130198},
+                        {"x": 456.7630257901523, "y": 509.135193652973},
+                        {"x": 452.32412593141254, "y": 545.2805210741395},
+                        {"x": 473.88449667386277, "y": 570.645663124081},
+                        {"x": 501.7861529287984, "y": 576.3528200853178},
+                        {"x": 537.2973517987165, "y": 559.8654777528559},
+                        {"x": 543.6386373112018, "y": 535.1344642541629},
+                        {"x": 531.5901948374797, "y": 495.18436552550514},
+                        {"x": 499.8837672750528, "y": 484.40418015428},
+                        {"x": 499.8837672750528, "y": 484.40418015428}
+                    ],
+                    "color": "hsla(310.7297811301219, 70%, 60%, 0.6)",
+                    "visible": true
+                }
+            },
+            "geneData": {
+                "ATP2": "Mitochondrion", "SEC61": "Rough ER", "RPL3": "Ribosome",
+                "HXT1": "Membrane", "HSP82": "Cytoplasm", "NPL3": "Nucleus",
+                "VMA1": "Vacuole", "COX4": "Mitochondrion", "PEX3": "Peroxisome",
+                "SUI1": "Cytoplasm", "SSB1": "Ribosome", "TOM20": "Mitochondrion",
+                "KAR2": "Rough ER", "CDC28": "Nucleus", "YAP1": "Nucleus",
+                "RPS6A": "Ribosome", "SOD2": "Mitochondrion", "PMA1": "Membrane",
+                "SEC63": "Rough ER", "RAD52": "Nucleus", "SNF1": "Cytoplasm",
+                "SSA1": "Cytoplasm", "TPI1": "Cytoplasm", "NUP133": "Nucleus",
+                "RPL13A": "Ribosome", "COX2": "Mitochondrion", "HSP104": "Cytoplasm",
+                "DNL4": "Nucleus", "PEX5": "Peroxisome", "ERG6": "Smooth ER",
+                "SIR2": "Nucleus", "FIS1": "Mitochondrion", "TIM23": "Mitochondrion",
+                "SEC17": "Golgi", "TUB1": "Cytoskeleton", "VPS4": "Endosome",
+                "PGK1": "Cytoplasm", "INO1": "Smooth ER", "RAD1": "Nucleus",
+                "GPD1": "Cytoplasm", "TRP1": "Nucleus", "NUP159": "Nucleus",
+                "RPL5": "Ribosome", "MRPL1": "Mitochondrion", "GLK1": "Cytoplasm",
+                "SSA3": "Cytoplasm", "BUD6": "Membrane", "ERG11": "Smooth ER",
+                "CDC42": "Membrane", "SOD1": "Cytoplasm"
+            }
+        };
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCanvas();
+            setupEventListeners();
+            loadDefaultData();
+        });
+
+        function initializeCanvas() {
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+            
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            window.addEventListener('orientationchange', () => {
+                setTimeout(resizeCanvas, 100);
+            });
+        }
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const rect = container.getBoundingClientRect();
+            
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            
+            redraw();
+        }
+
+        function setupEventListeners() {
+            // Touch events for canvas
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+            
+            // Mouse events (for desktop testing)
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', handleMouseUp);
+
+            // Control events
+            document.getElementById('showGenes').addEventListener('change', (e) => {
+                showGeneLabels = e.target.checked;
+                redraw();
+            });
+
+            document.getElementById('showOrganelles').addEventListener('change', (e) => {
+                showOrganelleLabels = e.target.checked;
+                redraw();
+            });
+
+            document.getElementById('geneFontSlider').addEventListener('input', (e) => {
+                geneFontSize = parseInt(e.target.value);
+                document.getElementById('geneFontValue').textContent = geneFontSize;
+                redraw();
+            });
+
+            document.getElementById('labelFontSlider').addEventListener('input', (e) => {
+                labelFontSize = parseInt(e.target.value);
+                document.getElementById('labelFontValue').textContent = labelFontSize;
+                redraw();
+            });
+        }
+
+        async function loadDefaultData() {
+            try {
+                // Load the default cell image
+                await loadDefaultImage();
+                
+                // Load project data
+                loadProjectData(defaultProject);
+                
+                // Hide loading overlay
+                document.getElementById('loadingOverlay').style.display = 'none';
+                
+                // Auto-fit the view
+                setTimeout(() => {
+                    zoomToFit();
+                }, 100);
+                
+            } catch (error) {
+                console.error('Error loading default data:', error);
+                document.getElementById('loadingOverlay').innerHTML = 
+                    '<div style="color: red;">Error loading data</div>';
+            }
+        }
+
+        function loadDefaultImage() {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = function() {
+                    image = img;
+                    resolve();
+                };
+                img.onerror = reject;
+                // Replace 'your-cell-image.jpg' with the actual path to the desired uploaded image
+                img.src = 'IMG_8057.jpg';
+            });
+        }
+
+        function loadProjectData(projectData) {
+            // Clear existing data
+            regions.clear();
+            geneData.clear();
+            genePositions.clear();
+
+            // Load regions
+            if (projectData.regions) {
+                Object.entries(projectData.regions).forEach(([name, regionData]) => {
+                    regions.set(name, {
+                        name: regionData.name,
+                        points: regionData.points,
+                        color: regionData.color,
+                        visible: regionData.visible !== false,
+                        genes: []
+                    });
+                });
+            }
+
+            // Load gene data
+            if (projectData.geneData) {
+                Object.entries(projectData.geneData).forEach(([gene, organelle]) => {
+                    geneData.set(gene, organelle);
+                });
+            }
+
+            redistributeGenes();
+            updateOrganelleList();
+            redraw();
+        }
+
+        // Touch event handlers
+        function handleTouchStart(event) {
+            event.preventDefault();
+            
+            if (event.touches.length === 1) {
+                const touch = event.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+                
+                // Check for gene click
+                const clickedGene = findGeneAtPosition(x, y);
+                if (clickedGene) {
+                    selectGene(clickedGene);
+                } else {
+                    // Start panning
+                    isPanning = true;
+                    lastTouchPoint = { x, y };
+                }
+            } else if (event.touches.length === 2) {
+                // Handle pinch zoom start
+                const touch1 = event.touches[0];
+                const touch2 = event.touches[1];
+                lastTouchDistance = Math.sqrt(
+                    Math.pow(touch2.clientX - touch1.clientX, 2) +
+                    Math.pow(touch2.clientY - touch1.clientY, 2)
+                );
+            }
+        }
+
+        function handleTouchMove(event) {
+            event.preventDefault();
+            
+            if (event.touches.length === 1 && isPanning) {
+                const touch = event.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+                
+                const dx = x - lastTouchPoint.x;
+                const dy = y - lastTouchPoint.y;
+                
+                offsetX += dx;
+                offsetY += dy;
+                
+                lastTouchPoint = { x, y };
+                redraw();
+            } else if (event.touches.length === 2) {
+                // Handle pinch zoom
+                const touch1 = event.touches[0];
+                const touch2 = event.touches[1];
+                const currentDistance = Math.sqrt(
+                    Math.pow(touch2.clientX - touch1.clientX, 2) +
+                    Math.pow(touch2.clientY - touch1.clientY, 2)
+                );
+                
+                if (lastTouchDistance) {
+                    const zoomFactor = currentDistance / lastTouchDistance;
+                    const centerX = (touch1.clientX + touch2.clientX) / 2 - canvas.getBoundingClientRect().left;
+                    const centerY = (touch1.clientY + touch2.clientY) / 2 - canvas.getBoundingClientRect().top;
+                    
+                    zoom(zoomFactor, centerX, centerY);
+                }
+                
+                lastTouchDistance = currentDistance;
+            }
+        }
+
+        function handleTouchEnd(event) {
+            event.preventDefault();
+            isPanning = false;
+            lastTouchDistance = null;
+        }
+
+        // Mouse event handlers (for desktop testing)
+        function handleMouseDown(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            const clickedGene = findGeneAtPosition(x, y);
+            if (clickedGene) {
+                selectGene(clickedGene);
+            } else {
+                isPanning = true;
+                lastTouchPoint = { x, y };
+            }
+        }
+
+        function handleMouseMove(event) {
+            if (!isPanning) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            const dx = x - lastTouchPoint.x;
+            const dy = y - lastTouchPoint.y;
+            
+            offsetX += dx;
+            offsetY += dy;
+            
+            lastTouchPoint = { x, y };
+            redraw();
+        }
+
+        function handleMouseUp(event) {
+            isPanning = false;
+        }
+
+        // Coordinate transformation functions
+        function screenToImage(screenX, screenY) {
+            return {
+                x: (screenX - offsetX) / scale,
+                y: (screenY - offsetY) / scale
+            };
+        }
+
+        function imageToScreen(imageX, imageY) {
+            return {
+                x: imageX * scale + offsetX,
+                y: imageY * scale + offsetY
+            };
+        }
+
+        // Zoom functions
+        function zoom(factor, centerX = canvas.width / 2, centerY = canvas.height / 2) {
+            const newScale = Math.max(minScale, Math.min(maxScale, scale * factor));
+            
+            if (newScale !== scale) {
+                const scaleFactor = newScale / scale;
+                offsetX = centerX - (centerX - offsetX) * scaleFactor;
+                offsetY = centerY - (centerY - offsetY) * scaleFactor;
+                
+                scale = newScale;
+                redraw();
+                updateZoomInfo();
+            }
+        }
+
+        function zoomIn() {
+            zoom(1.3);
+        }
+
+        function zoomOut() {
+            zoom(0.7);
+        }
+
+        function zoomToFit() {
+            if (!image) return;
+
+            const padding = 20;
+            const scaleX = (canvas.width - padding * 2) / image.width;
+            const scaleY = (canvas.height - padding * 2) / image.height;
+            const newScale = Math.min(scaleX, scaleY, 1);
+
+            scale = newScale;
+            offsetX = (canvas.width - image.width * scale) / 2;
+            offsetY = (canvas.height - image.height * scale) / 2;
+
+            redraw();
+            updateZoomInfo();
+        }
+
+        function updateZoomInfo() {
+            document.getElementById('zoomInfo').textContent = `Zoom: ${Math.round(scale * 100)}%`;
+        }
+
+        // Gene functions
+        function findGeneAtPosition(screenX, screenY) {
+            const imagePos = screenToImage(screenX, screenY);
+            const tolerance = Math.max(15, 20 / scale);
+            
+            for (const [geneName, genePos] of genePositions) {
+                const distance = Math.sqrt(
+                    Math.pow(imagePos.x - genePos.x, 2) + 
+                    Math.pow(imagePos.y - genePos.y, 2)
+                );
+                if (distance <= tolerance) {
+                    return geneName;
+                }
+            }
+            return null;
+        }
+
+        function selectGene(geneName) {
+            selectedGene = geneName;
+            const organelle = geneData.get(geneName) || 'Unknown';
+            
+            // Count genes in same organelle
+            const organelleGenes = Array.from(geneData.entries())
+                .filter(([gene, org]) => org === organelle);
+            
+            const info = `<strong>Gene:</strong> ${geneName}<br><strong>Organelle:</strong> ${organelle}<br><strong>Genes in ${organelle}:</strong> ${organelleGenes.length}`;
+            const geneInfoEl = document.getElementById('geneInfo');
+            geneInfoEl.innerHTML = info;
+            geneInfoEl.classList.add('show');
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                geneInfoEl.classList.remove('show');
+            }, 5000);
+            
+            redraw();
+        }
+
+        function redistributeGenes() {
+            genePositions.clear();
+            
+            // Group genes by organelle
+            const organelleGenes = new Map();
+            geneData.forEach((organelle, gene) => {
+                if (!organelleGenes.has(organelle)) {
+                    organelleGenes.set(organelle, []);
+                }
+                organelleGenes.get(organelle).push(gene);
+            });
+
+            // Position genes within their regions
+            organelleGenes.forEach((genes, organelleName) => {
+                const region = regions.get(organelleName);
+                if (region) {
+                    const positions = calculateGenePositions(region, genes);
+                    genes.forEach((gene, index) => {
+                        if (positions[index]) {
+                            genePositions.set(gene, positions[index]);
+                        }
+                    });
+                    region.genes = genes;
+                }
+            });
+        }
+
+        function calculateGenePositions(region, genes) {
+            if (!genes.length) return [];
+
+            const positions = [];
+            const bounds = getRegionBounds(region.points);
+            
+            // Try to distribute genes in a grid
+            const gridSize = Math.ceil(Math.sqrt(genes.length));
+            const cellWidth = bounds.width / gridSize;
+            const cellHeight = bounds.height / gridSize;
+
+            let geneIndex = 0;
+            for (let row = 0; row < gridSize && geneIndex < genes.length; row++) {
+                for (let col = 0; col < gridSize && geneIndex < genes.length; col++) {
+                    const x = bounds.x + col * cellWidth + cellWidth / 2;
+                    const y = bounds.y + row * cellHeight + cellHeight / 2;
+                    const point = { x, y };
+
+                    if (isPointInPolygon(point, region.points)) {
+                        positions.push(point);
+                        geneIndex++;
+                    } else {
+                        // Try random positions within the polygon
+                        let attempts = 0;
+                        while (attempts < 50 && geneIndex < genes.length) {
+                            const randX = bounds.x + Math.random() * bounds.width;
+                            const randY = bounds.y + Math.random() * bounds.height;
+                            const randPoint = { x: randX, y: randY };
+
+                            if (isPointInPolygon(randPoint, region.points)) {
+                                positions.push(randPoint);
+                                geneIndex++;
+                                break;
+                            }
+                            attempts++;
+                        }
+                    }
+                }
+            }
+
+            // Place remaining genes at region center with small offsets
+            const center = getPolygonCenter(region.points);
+            while (positions.length < genes.length) {
+                const offsetIndex = positions.length - genes.length + geneIndex;
+                positions.push({
+                    x: center.x + (offsetIndex * 10),
+                    y: center.y + (offsetIndex * 5)
+                });
+            }
+
+            return positions;
+        }
+
+        // Geometry helper functions
+        function getRegionBounds(points) {
+            if (!points.length) return { x: 0, y: 0, width: 0, height: 0 };
+
+            const xs = points.map(p => p.x);
+            const ys = points.map(p => p.y);
+            const minX = Math.min(...xs);
+            const maxX = Math.max(...xs);
+            const minY = Math.min(...ys);
+            const maxY = Math.max(...ys);
+
+            return {
+                x: minX,
+                y: minY,
+                width: maxX - minX,
+                height: maxY - minY
+            };
+        }
+
+        function getPolygonCenter(points) {
+            if (!points.length) return { x: 0, y: 0 };
+
+            const sum = points.reduce((acc, p) => ({
+                x: acc.x + p.x,
+                y: acc.y + p.y
+            }), { x: 0, y: 0 });
+
+            return {
+                x: sum.x / points.length,
+                y: sum.y / points.length
+            };
+        }
+
+        function isPointInPolygon(point, polygon) {
+            let inside = false;
+            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+                const xi = polygon[i].x;
+                const yi = polygon[i].y;
+                const xj = polygon[j].x;
+                const yj = polygon[j].y;
+
+                if (((yi > point.y) !== (yj > point.y)) &&
+                    (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi)) {
+                    inside = !inside;
+                }
+            }
+            return inside;
+        }
+
+        // Drawing functions
+        function redraw() {
+            if (!canvas || !ctx) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (image) {
+                drawImage();
+            }
+
+            if (regions.size > 0) {
+                drawRegions();
+            }
+
+            if (genePositions.size > 0 && showGeneLabels) {
+                drawGenes();
+            }
+        }
+
+        function drawImage() {
+            const screenPos = imageToScreen(0, 0);
+            ctx.drawImage(image, screenPos.x, screenPos.y, image.width * scale, image.height * scale);
+        }
+
+        function drawRegions() {
+            regions.forEach(region => {
+                if (!region.visible || region.points.length < 3) return;
+
+                // Convert points to screen coordinates
+                const screenPoints = region.points.map(p => imageToScreen(p.x, p.y));
+
+                // Fill region
+                ctx.fillStyle = region.color;
+                ctx.globalAlpha = 0.4;
+                ctx.beginPath();
+                ctx.moveTo(screenPoints[0].x, screenPoints[0].y);
+                screenPoints.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+                ctx.closePath();
+                ctx.fill();
+
+                // Draw border
+                ctx.globalAlpha = 1;
+                ctx.strokeStyle = darkenColor(region.color, 0.3);
+                ctx.lineWidth = Math.max(1, 2 / scale);
+                ctx.stroke();
+
+                // Draw label
+                if (showOrganelleLabels) {
+                    drawOrganelleLabel(region, screenPoints);
+                }
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        function drawOrganelleLabel(region, screenPoints) {
+            if (!screenPoints.length) return;
+
+            const center = {
+                x: screenPoints.reduce((sum, p) => sum + p.x, 0) / screenPoints.length,
+                y: screenPoints.reduce((sum, p) => sum + p.y, 0) / screenPoints.length
+            };
+
+            const fontSize = Math.max(10, labelFontSize * scale);
+            ctx.font = `bold ${fontSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Draw text outline
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = Math.max(2, 3 * scale);
+            ctx.strokeText(region.name, center.x, center.y);
+
+            // Draw text fill
+            ctx.fillStyle = 'white';
+            ctx.fillText(region.name, center.x, center.y);
+        }
+
+        function drawGenes() {
+            const fontSize = Math.max(8, geneFontSize * scale);
+            ctx.font = `${fontSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+
+            genePositions.forEach((position, geneName) => {
+                const screenPos = imageToScreen(position.x, position.y);
+                
+                // Determine color based on selection
+                const isSelected = geneName === selectedGene;
+                const color = isSelected ? '#ffff00' : '#ff0000';
+                const pointSize = Math.max(2, 4 * scale);
+
+                // Draw gene point
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(screenPos.x, screenPos.y, pointSize, 0, 2 * Math.PI);
+                ctx.fill();
+
+                // Draw gene label
+                const labelY = screenPos.y - pointSize - 2;
+                
+                // Draw text outline
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = Math.max(1, 2 * scale);
+                ctx.strokeText(geneName, screenPos.x, labelY);
+
+                // Draw text fill
+                ctx.fillStyle = color;
+                ctx.fillText(geneName, screenPos.x, labelY);
+            });
+        }
+
+        // Utility functions
+        function darkenColor(color, factor) {
+            // Simple color darkening - works with hsla colors
+            if (color.includes('hsla')) {
+                return color.replace(/(\d+)%\)/, (match, lightness) => {
+                    const newLightness = Math.max(0, parseInt(lightness) - factor * 100);
+                    return `${newLightness}%)`;
+                });
+            }
+            return color;
+        }
+
+        // UI functions
+        function toggleControls() {
+            const panel = document.getElementById('controlsPanel');
+            panel.classList.toggle('open');
+        }
+
+        function updateOrganelleList() {
+            const list = document.getElementById('organelleList');
+            
+            if (regions.size === 0) {
+                list.innerHTML = '<div style="padding: 20px; text-align: center; color: #6c757d;">No regions defined</div>';
+                return;
+            }
+
+            list.innerHTML = '';
+            regions.forEach((region, name) => {
+                const item = createOrganelleListItem(region);
+                list.appendChild(item);
+            });
+        }
+
+        function createOrganelleListItem(region) {
+            const item = document.createElement('div');
+            item.className = 'organelle-item';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'organelle-checkbox';
+            checkbox.checked = region.visible;
+            checkbox.addEventListener('change', (e) => {
+                region.visible = e.target.checked;
+                item.classList.toggle('active', region.visible);
+                redraw();
+            });
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'organelle-name';
+            nameSpan.textContent = region.name;
+
+            const countBadge = document.createElement('span');
+            countBadge.className = 'organelle-count';
+            countBadge.textContent = region.genes ? region.genes.length : 0;
+
+            const colorIndicator = document.createElement('div');
+            colorIndicator.className = 'color-indicator';
+            colorIndicator.style.backgroundColor = region.color;
+
+            if (region.visible) {
+                item.classList.add('active');
+            }
+
+            item.appendChild(checkbox);
+            item.appendChild(nameSpan);
+            item.appendChild(countBadge);
+            item.appendChild(colorIndicator);
+
+            return item;
+        }
+    </script>
+</body>
+</html>
